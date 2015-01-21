@@ -68,7 +68,8 @@ func NewCollector() (*Collector, error) {
 	collector.tailers = make(map[string]*Tailer)
 	collector.cur = 0
 	collector.queue = make(chan []byte)
-	&collector.Go((&collector).loop)
+	c := &collector
+	c.Go(c.loop)
 	return &collector, nil
 }
 
@@ -101,6 +102,10 @@ func (c *Collector) loop() error {
 	}
 
 }
+
+//func (c *Collector) Start() {
+//	c.Go(c.loop)
+//}
 
 func (c *Collector) Stop() error {
 	// stop tailers

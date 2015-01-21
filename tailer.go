@@ -144,119 +144,119 @@ func (t *Tailer) loop() error {
 	}
 }
 
-func (t *Tailer) init() error {
-	file, err := os.Open(t.path)
-	for err != nil {
-		select {
-		case <-time.After(time.Duration(3) * time.Second):
-			file, err = tail.OpenFile(t.path)
-		case <-t.Dying():
-			return nil
-		}
-		logger.Warning(Format("open %s fail %v\n", t.path, err))
-	}
-	t.file = file
-	seek, err := t.getPos()
-	if err != nil {
-		logger.Warning(Format("get seek info of %s fail %v, will use end of file\n", t.path, err))
-	}
-
-	stat, err := file.Stat()
-	if err != nil {
-		logger.Err(Format("get %s stat fail %v\n", t.path, err))
-		return err
-	}
-
-	if stat.Size() < seek {
-		seek = 0
-	}
-
-	if seek < 0 {
-		seek = stat.Size()
-	}
-
-	tailer, err := tail.TailFile(t.path,
-		tail.Config{
-			Follow:   true,
-			Location: &tail.SeekInfo{Offset: seek},
-			ReOpen:   true,
-			Poll:     false})
-
-	if err != nil {
-		logger.Err(Format("init tailer fail %v\n", err))
-		return err
-	}
-	t.isStart = true
-	t.tailer = tailer
-	return nil
-}
+//func (t *Tailer) init() error {
+//	file, err := os.Open(t.path)
+//	for err != nil {
+//		select {
+//		case <-time.After(time.Duration(3) * time.Second):
+//			file, err = tail.OpenFile(t.path)
+//		case <-t.Dying():
+//			return nil
+//		}
+//		logger.Warning(Format("open %s fail %v\n", t.path, err))
+//	}
+//	t.file = file
+//	seek, err := t.getPos()
+//	if err != nil {
+//		logger.Warning(Format("get seek info of %s fail %v, will use end of file\n", t.path, err))
+//	}
+//
+//	stat, err := file.Stat()
+//	if err != nil {
+//		logger.Err(Format("get %s stat fail %v\n", t.path, err))
+//		return err
+//	}
+//
+//	if stat.Size() < seek {
+//		seek = 0
+//	}
+//
+//	if seek < 0 {
+//		seek = stat.Size()
+//	}
+//
+//	tailer, err := tail.TailFile(t.path,
+//		tail.Config{
+//			Follow:   true,
+//			Location: &tail.SeekInfo{Offset: seek},
+//			ReOpen:   true,
+//			Poll:     false})
+//
+//	if err != nil {
+//		logger.Err(Format("init tailer fail %v\n", err))
+//		return err
+//	}
+//	t.isStart = true
+//	t.tailer = tailer
+//	return nil
+//}
 
 func (t *Tailer) Stop() error {
 	t.Kill(nil)
 	return t.Wait()
 }
 
-func (t *Tailer) Start() {
-	defer t.cleanup()
-
-	var seek int64
-	err := t.init()
-	if err != nil {
-		logger.Err(Format("init tailer %s fail %v\n", t.path, err))
-		return
-	}
-
-	for {
-		if !t.isStart {
-			select {
-			case <-t.Dying():
-				return
-			default:
-				<-time.After(time.Duration(1) * time.Second)
-				continue
-			}
-		}
-		pos, err := t.tailer.Tell()
-		select {
-		case <-t.Dying():
-			if pos != seek {
-				seek, err = t.setPos(pos)
-			}
-			return
-		case <-time.After(time.Duration(3) * time.Second):
-			if pos != seek {
-				seek, err = t.setPos(pos)
-			}
-		case line := <-t.tailer.Lines:
-			t.fire(line.Text)
-			if err != nil {
-				logger.Warning(Format("get current pos of %s fail: %v\n", t.path, err))
-			} else {
-				stat, err := t.file.Stat()
-
-				if err != nil {
-					logger.Warning(Format("get size of %s fail: %v\n", t.path, err))
-					continue
-				}
-
-				if stat.Name() != t.tailer.Filename {
-					file, err := os.Open(t.path)
-					if err != nil {
-						continue
-					}
-					t.file.Close()
-					t.file = file
-					continue
-				}
-				size := stat.Size()
-				if (size - pos) >= conf.MaxPendingSize*1024*1024 {
-					logger.Warning(Format("%s overhead limit pending size, current pos is %d, size is %d\n", t.path, pos, size))
-					go Alert(t.path, pos, size)
-				}
-			}
-		}
-	}
-}
+//func (t *Tailer) Start() {
+//	defer t.cleanup()
+//
+//	var seek int64
+//	err := t.init()
+//	if err != nil {
+//		logger.Err(Format("init tailer %s fail %v\n", t.path, err))
+//		return
+//	}
+//
+//	for {
+//		if !t.isStart {
+//			select {
+//			case <-t.Dying():
+//				return
+//			default:
+//				<-time.After(time.Duration(1) * time.Second)
+//				continue
+//			}
+//		}
+//		pos, err := t.tailer.Tell()
+//		select {
+//		case <-t.Dying():
+//			if pos != seek {
+//				seek, err = t.setPos(pos)
+//			}
+//			return
+//		case <-time.After(time.Duration(3) * time.Second):
+//			if pos != seek {
+//				seek, err = t.setPos(pos)
+//			}
+//		case line := <-t.tailer.Lines:
+//			t.fire(line.Text)
+//			if err != nil {
+//				logger.Warning(Format("get current pos of %s fail: %v\n", t.path, err))
+//			} else {
+//				stat, err := t.file.Stat()
+//
+//				if err != nil {
+//					logger.Warning(Format("get size of %s fail: %v\n", t.path, err))
+//					continue
+//				}
+//
+//				if stat.Name() != t.tailer.Filename {
+//					file, err := os.Open(t.path)
+//					if err != nil {
+//						continue
+//					}
+//					t.file.Close()
+//					t.file = file
+//					continue
+//				}
+//				size := stat.Size()
+//				if (size - pos) >= conf.MaxPendingSize*1024*1024 {
+//					logger.Warning(Format("%s overhead limit pending size, current pos is %d, size is %d\n", t.path, pos, size))
+//					go Alert(t.path, pos, size)
+//				}
+//			}
+//		}
+//	}
+//}
 
 func (t *Tailer) fire(line string) {
 	logItem := LogItem{Path: t.path, Tags: t.tags, App: conf.App, Source: conf.Source, Content: line}

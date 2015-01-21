@@ -43,11 +43,8 @@ func main() {
 		logger.Crit(Format("init collector fail %v\n", err))
 		os.Exit(1)
 	}
-
-	go func() {
-		<-c
-		collector.Stop()
-		logger.Close()
-		os.Exit(0)
-	}()
+	<-c
+	collector.Stop()
+	logger.Close()
+	os.Exit(0)
 }
